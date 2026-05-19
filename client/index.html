@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UniGrade — University CGPA Calculator</title>
+  <meta name="description" content="Securely fetch your university results and calculate your CGPA automatically. No data is stored." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            primary: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' },
+            accent:  { 400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed' },
+          },
+          animation: {
+            'spin-slow': 'spin 2s linear infinite',
+            'pulse-fast': 'pulse 1s ease-in-out infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'slide-up': 'slideUp 0.5s ease-out',
+            'fade-in': 'fadeIn 0.4s ease-out',
+          },
+          keyframes: {
+            float: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
+            slideUp: { from: { opacity:'0', transform:'translateY(20px)' }, to: { opacity:'1', transform:'translateY(0)' } },
+            fadeIn: { from: { opacity:'0' }, to: { opacity:'1' } },
+          },
+          backdropBlur: { xs: '2px' },
+        }
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body class="dark font-sans bg-gray-950 text-gray-100 min-h-screen overflow-x-hidden">
+
+  <!-- ════════════════════════════════════════════════════════
+       ANIMATED BACKGROUND
+  ════════════════════════════════════════════════════════ -->
+  <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       NAVIGATION
+  ════════════════════════════════════════════════════════ -->
+  <nav class="relative z-10 flex items-center justify-between px-6 py-4 border-b border-white/5 backdrop-blur-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+        </svg>
+      </div>
+      <span class="text-lg font-bold tracking-tight">UniGrade</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="mockBadge" class="hidden px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+        DEMO MODE
+      </span>
+      <button id="resetBtn" class="hidden px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200" aria-label="Reset and log out">
+        ← New Login
+      </button>
+    </div>
+  </nav>
+
+  <!-- ════════════════════════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════════════════════ -->
+  <main class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-10">
+
+    <!-- ── LOGIN PANEL ────────────────────────────────────── -->
+    <section id="loginPanel" class="flex flex-col items-center justify-center min-h-[75vh] animate-fade-in">
+
+      <!-- Hero Text -->
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-400 text-xs font-semibold mb-6 animate-float">
+          <span class="w-1.5 h-1.5 rounded-full bg-primary-400 animate-pulse-fast"></span>
+          Secure · Private · Zero Storage
+        </div>
+        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+          Your Grades,
+          <span class="gradient-text">Calculated Instantly</span>
+        </h1>
+        <p class="mt-4 text-gray-400 text-base sm:text-lg max-w-md mx-auto leading-relaxed">
+          Enter your student portal credentials. We fetch your published results, calculate your CGPA, and never store your data.
+        </p>
+      </div>
+
+      <!-- Login Card -->
+      <div class="glass-card w-full max-w-md p-8">
+        <form id="loginForm" novalidate>
+
+          <!-- University Field (optional info display) -->
+          <div class="mb-6">
+            <label class="block text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2" for="universityName">
+              University Name <span class="text-gray-600 normal-case tracking-normal font-normal">(optional, for display)</span>
+            </label>
+            <input
+              type="text"
+              id="universityName"
+              name="universityName"
+              placeholder="e.g. National University of Sciences"
+              autocomplete="organization"
+              class="form-input"
+            />
+          </div>
+
+          <!-- Username Field -->
+          <div class="mb-5">
+            <label class="block text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2" for="username">
+              Student ID / Username <span class="text-primary-400">*</span>
+            </label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+              </span>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                required
+                autocomplete="username"
+                placeholder="e.g. 2021-CS-001"
+                class="form-input pl-10"
+              />
+            </div>
+            <p id="usernameError" class="field-error hidden">Please enter your student ID.</p>
+          </div>
+
+          <!-- Password Field -->
+          <div class="mb-7">
+            <label class="block text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2" for="password">
+              Password <span class="text-primary-400">*</span>
+            </label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+              </span>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                autocomplete="current-password"
+                placeholder="Your portal password"
+                class="form-input pl-10 pr-11"
+              />
+              <button
+                type="button"
+                id="togglePassword"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                aria-label="Toggle password visibility"
+              >
+                <svg id="eyeShow" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <svg id="eyeHide" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                </svg>
+              </button>
+            </div>
+            <p id="passwordError" class="field-error hidden">Please enter your password.</p>
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            id="fetchBtn"
+            class="w-full py-3.5 px-6 rounded-xl font-semibold text-sm bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-500 hover:to-accent-500 text-white shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 transition-all duration-300 active:scale-95 flex items-center justify-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Fetch My Grades
+          </button>
+
+          <!-- Privacy Notice -->
+          <p class="mt-5 text-xs text-center text-gray-600 leading-relaxed">
+            <svg class="w-3 h-3 inline mr-1 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+            </svg>
+            Your credentials are <strong class="text-gray-400">never stored</strong>. They exist only in memory during the fetch and are immediately destroyed.
+          </p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ── LOADING OVERLAY ────────────────────────────────── -->
+    <section id="loadingPanel" class="hidden flex flex-col items-center justify-center min-h-[75vh] animate-fade-in">
+      <div class="glass-card w-full max-w-sm p-10 flex flex-col items-center text-center">
+        <!-- Spinner -->
+        <div class="relative w-20 h-20 mb-8">
+          <div class="spinner-outer"></div>
+          <div class="spinner-inner"></div>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <svg class="w-8 h-8 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+            </svg>
+          </div>
+        </div>
+
+        <h2 class="text-xl font-bold mb-2">Working on it...</h2>
+        <p id="statusText" class="text-gray-400 text-sm leading-relaxed transition-all duration-300">
+          Initializing...
+        </p>
+
+        <!-- Progress Steps -->
+        <div class="mt-8 w-full space-y-2.5">
+          <div class="step-item" id="step-login">
+            <div class="step-icon step-pending" id="step-login-icon">1</div>
+            <span class="text-sm text-gray-400" id="step-login-text">Logging in to portal</span>
+          </div>
+          <div class="step-item" id="step-fetch">
+            <div class="step-icon step-pending" id="step-fetch-icon">2</div>
+            <span class="text-sm text-gray-400" id="step-fetch-text">Fetching results</span>
+          </div>
+          <div class="step-item" id="step-sync">
+            <div class="step-icon step-pending" id="step-sync-icon">3</div>
+            <span class="text-sm text-gray-400" id="step-sync-text">Syncing dashboard</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── ERROR PANEL ────────────────────────────────────── -->
+    <section id="errorPanel" class="hidden flex flex-col items-center justify-center min-h-[75vh] animate-fade-in">
+      <div class="glass-card w-full max-w-sm p-10 flex flex-col items-center text-center border-red-500/20">
+        <div class="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-6">
+          <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold mb-2 text-red-300">Something went wrong</h2>
+        <p id="errorMessage" class="text-gray-400 text-sm leading-relaxed mb-7">
+          An unexpected error occurred.
+        </p>
+        <button id="retryBtn" class="px-6 py-2.5 rounded-xl font-semibold text-sm bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200">
+          ← Try Again
+        </button>
+      </div>
+    </section>
+
+    <!-- ── DASHBOARD ──────────────────────────────────────── -->
+    <section id="dashboard" class="hidden animate-slide-up">
+
+      <!-- CGPA Summary Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" id="summaryCards">
+
+        <div class="glass-card p-6 text-center col-span-1 sm:col-span-1 border-primary-500/20">
+          <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1">Cumulative CGPA</p>
+          <p id="cgpaDisplay" class="text-5xl font-extrabold gradient-text">—</p>
+          <p class="mt-1 text-xs text-gray-500">out of 4.00</p>
+        </div>
+
+        <div class="glass-card p-6 text-center">
+          <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1">Total Credits</p>
+          <p id="totalCreditsDisplay" class="text-4xl font-bold text-white">—</p>
+          <p class="mt-1 text-xs text-gray-500">credit hours</p>
+        </div>
+
+        <div class="glass-card p-6 text-center">
+          <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1">Semesters</p>
+          <p id="semesterCountDisplay" class="text-4xl font-bold text-white">—</p>
+          <p class="mt-1 text-xs text-gray-500">completed</p>
+        </div>
+      </div>
+
+      <!-- Student Info -->
+      <div id="studentInfoBar" class="hidden flex items-center gap-3 mb-6 px-5 py-3 rounded-xl bg-white/3 border border-white/8">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center font-bold text-sm">
+          <span id="studentInitial">S</span>
+        </div>
+        <div>
+          <p class="text-sm font-semibold" id="studentNameDisplay">Student</p>
+          <p class="text-xs text-gray-500" id="universityDisplay"></p>
+        </div>
+      </div>
+
+      <!-- Grade Scale Legend -->
+      <div class="glass-card p-5 mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-500">Grade Scale (Editable)</h3>
+          <button id="editScaleBtn" class="text-xs text-primary-400 hover:text-primary-300 transition-colors">Edit</button>
+        </div>
+        <div id="gradeScaleDisplay" class="flex flex-wrap gap-2">
+          <!-- Populated by JS -->
+        </div>
+        <div id="gradeScaleEditor" class="hidden mt-4">
+          <p class="text-xs text-gray-500 mb-3">Edit grade point values (comma-separated pairs: Grade=Points)</p>
+          <textarea id="gradeScaleInput" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-xs font-mono text-gray-300 focus:outline-none focus:border-primary-500/50 resize-none h-24"></textarea>
+          <button id="applyScaleBtn" class="mt-2 px-4 py-1.5 text-xs font-semibold rounded-lg bg-primary-600 hover:bg-primary-500 transition-colors">Apply & Recalculate</button>
+        </div>
+      </div>
+
+      <!-- Semester Accordion -->
+      <div id="semesterList" class="space-y-3">
+        <!-- Populated by JS -->
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ════════════════════════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════════════════════ -->
+  <footer class="relative z-10 text-center py-8 text-xs text-gray-700 border-t border-white/5 mt-12">
+    UniGrade &mdash; Your credentials are processed in-memory and immediately discarded. &nbsp;|&nbsp; Built with Node.js + Puppeteer
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

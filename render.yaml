@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: uniggrade
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: USE_MOCK
+        value: false
+      - key: PORT
+        value: 3000
