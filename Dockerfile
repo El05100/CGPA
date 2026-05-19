@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxss1 \
     libxtst6 \
     libgbm1 \
+    libasound2 \
     wget \
   && rm -rf /var/lib/apt/lists/*
 
