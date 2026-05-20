@@ -146,6 +146,8 @@ async function scrapeGrades(credentials, onStatus = () => { }) {
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-gpu",
+        "--disable-blink-features=AutomationControlled",
+        "--single-process",
         "--disable-extensions",
         "--disable-features=site-per-process",
       ],
@@ -156,6 +158,21 @@ async function scrapeGrades(credentials, onStatus = () => { }) {
     await page.setUserAgent(
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
     );
+    await page.setExtraHTTPHeaders({
+      "accept-language": "en-US,en;q=0.9"
+    });
+
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => false });
+      Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+      Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+      window.chrome = window.chrome || { runtime: {} };
+      const originalQuery = window.navigator.permissions.query;
+      window.navigator.permissions.query = (parameters) =>
+        parameters.name === 'notifications'
+          ? Promise.resolve({ state: Notification.permission })
+          : originalQuery(parameters);
+    });
 
     // Block images/fonts to speed up scraping
     await page.setRequestInterception(true);
@@ -172,8 +189,8 @@ async function scrapeGrades(credentials, onStatus = () => { }) {
 
     // ── STEP 1: Navigate to login page ──────────────────────
     onStatus("Navigating to university portal...");
-    await page.goto(CONFIG.PORTAL_LOGIN_URL, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(1200);
+    await page.goto(CONFIG.PORTAL_LOGIN_URL, { waitUntil: "load", timeout: 45000 });
+    await page.waitForTimeout(5000);
 
     // ── STEP 2: Check for CAPTCHA ────────────────────────────
     const hasCaptcha = await page.$("iframe[src*='captcha'], .g-recaptcha, #captcha");
@@ -185,10 +202,18 @@ async function scrapeGrades(credentials, onStatus = () => { }) {
 
     // ── STEP 3: Fill credentials ─────────────────────────────
     onStatus("Logging in...");
-    await page.waitForSelector(CONFIG.USERNAME_SELECTOR, { visible: true });
+    await page.waitForFunction(
+      (selector) => !!document.querySelector(selector),
+      { timeout: 30000 },
+      CONFIG.USERNAME_SELECTOR
+    );
     await page.type(CONFIG.USERNAME_SELECTOR, credentials.username, { delay: 40 });
 
-    await page.waitForSelector(CONFIG.PASSWORD_SELECTOR, { visible: true });
+    await page.waitForFunction(
+      (selector) => !!document.querySelector(selector),
+      { timeout: 30000 },
+      CONFIG.PASSWORD_SELECTOR
+    );
     await page.type(CONFIG.PASSWORD_SELECTOR, credentials.password, { delay: 40 });
 
     // ── STEP 4: Submit form ──────────────────────────────────
